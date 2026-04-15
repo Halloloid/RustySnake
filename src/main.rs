@@ -51,13 +51,20 @@ fn main() -> io::Result<()> {
         end:Position { x: boundary.end.x-2, y: boundary.end.y-2 },
     };
 
+    let snake = Snake{
+        body: vec![Position{x:2,y:10},Position{x:3,y:10}],
+        direction:Direction::Right,
+    };
+
     let mut food_postion = Position{x:0,y:0};
 
     terminal::enable_raw_mode()?;
     create_boundary(&mut stdout, &boundary)?;
-    for _ in 1..100{
-        spawn_food(&mut stdout, &mut food_postion, &inside_boundary)?;
-    }
+    // for _ in 1..100{
+    //     spawn_food(&mut stdout, &mut food_postion, &inside_boundary)?;
+    // }
+
+    draw_snake(&mut stdout,&snake.body)?;
     terminal::disable_raw_mode()?;
 
     stdout.execute(cursor::MoveTo(0,boundary.end.y))?;
@@ -88,6 +95,17 @@ fn spawn_food(stdout: &mut Stdout,food_postion:&mut Position,boundary: &Boundary
     stdout
     .queue(cursor::MoveTo(food_postion.x,food_postion.y))?
     .queue(style::PrintStyledContent("⏹".magenta()))?;
+
+    stdout.flush()?;
+    Ok(())
+}
+
+fn draw_snake(stdout: &mut Stdout,body: &Vec<Position>)-> io::Result<()>{
+    for pos in body{
+        stdout
+        .queue(cursor::MoveTo(pos.x,pos.y))?
+        .queue(style::PrintStyledContent("⏹".yellow()))?;
+    }
 
     stdout.flush()?;
     Ok(())
