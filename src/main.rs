@@ -182,3 +182,11 @@ fn move_snake(stdout: &mut Stdout, snake: &mut Snake) -> io::Result<()> {
     thread::sleep(Duration::from_millis(50));
     Ok(())
 }
+
+
+fn check_wall_collision(stdout: &mut Stdout) -> io::Result<()> {
+    
+    
+    
+    Ok(())
+}
