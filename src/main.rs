@@ -14,6 +14,7 @@ struct Position {
     y: u16,
 }
 
+#[derive(Clone, Copy)]
 enum Direction {
     Up,
     Down,
@@ -38,7 +39,7 @@ struct Boundary {
 }
 
 fn main() -> io::Result<()> {
-    let mut stdout = io::stdout();
+    let mut stdout = stdout();
     stdout.execute(terminal::Clear(terminal::ClearType::All))?;
 
     let boundary = Boundary {
@@ -46,28 +47,35 @@ fn main() -> io::Result<()> {
         end: Position { x: 50, y: 20 },
     };
 
-    let inside_boundary = Boundary{
-        start:Position { x: boundary.start.x+1, y: boundary.start.y+1 },
-        end:Position { x: boundary.end.x-2, y: boundary.end.y-2 },
+    let inside_boundary = Boundary {
+        start: Position {
+            x: boundary.start.x + 1,
+            y: boundary.start.y + 1,
+        },
+        end: Position {
+            x: boundary.end.x - 2,
+            y: boundary.end.y - 2,
+        },
     };
 
-    let snake = Snake{
-        body: vec![Position{x:2,y:10},Position{x:3,y:10}],
-        direction:Direction::Right,
+    let mut snake = Snake {
+        body: vec![Position { x: 2, y: 10 }, Position { x: 3, y: 10 }],
+        direction: Direction::Right,
     };
 
-    let mut food_postion = Position{x:0,y:0};
+    let mut food_postion = Position { x: 0, y: 0 };
 
     terminal::enable_raw_mode()?;
-    create_boundary(&mut stdout, &boundary)?;
-    // for _ in 1..100{
-    //     spawn_food(&mut stdout, &mut food_postion, &inside_boundary)?;
-    // }
+    for _ in 1..100 {
+        spawn_food(&mut stdout, &mut food_postion, &inside_boundary)?;
+        create_boundary(&mut stdout, &boundary)?;
+        move_snake(&mut stdout, &mut snake)?;
+        draw_snake(&mut stdout, &snake.body)?;
+    }
 
-    draw_snake(&mut stdout,&snake.body)?;
     terminal::disable_raw_mode()?;
 
-    stdout.execute(cursor::MoveTo(0,boundary.end.y))?;
+    stdout.execute(cursor::MoveTo(0, boundary.end.y))?;
 
     Ok(())
 }
@@ -86,27 +94,91 @@ fn create_boundary(stdout: &mut Stdout, boundary: &Boundary) -> io::Result<()> {
     Ok(())
 }
 
-fn spawn_food(stdout: &mut Stdout,food_postion:&mut Position,boundary: &Boundary) -> io::Result<()> {
-    *food_postion = Position { 
-        x: rand::thread_rng().gen_range(boundary.start.x..boundary.end.x), 
-        y: rand::thread_rng().gen_range(boundary.start.y..boundary.end.y)
+fn spawn_food(
+    stdout: &mut Stdout,
+    food_postion: &mut Position,
+    boundary: &Boundary,
+) -> io::Result<()> {
+    *food_postion = Position {
+        x: rand::thread_rng().gen_range(boundary.start.x..boundary.end.x),
+        y: rand::thread_rng().gen_range(boundary.start.y..boundary.end.y),
     };
 
     stdout
-    .queue(cursor::MoveTo(food_postion.x,food_postion.y))?
-    .queue(style::PrintStyledContent("⏹".magenta()))?;
+        .queue(cursor::MoveTo(food_postion.x, food_postion.y))?
+        .queue(style::PrintStyledContent("⏹".magenta()))?;
 
     stdout.flush()?;
     Ok(())
 }
 
-fn draw_snake(stdout: &mut Stdout,body: &Vec<Position>)-> io::Result<()>{
-    for pos in body{
+fn draw_snake(stdout: &mut Stdout, body: &Vec<Position>) -> io::Result<()> {
+    stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+    for pos in body {
         stdout
-        .queue(cursor::MoveTo(pos.x,pos.y))?
-        .queue(style::PrintStyledContent("⏹".yellow()))?;
+            .queue(cursor::MoveTo(pos.x, pos.y))?
+            .queue(style::PrintStyledContent("⏹".yellow()))?;
     }
 
     stdout.flush()?;
+    Ok(())
+}
+
+fn move_snake(stdout: &mut Stdout, snake: &mut Snake) -> io::Result<()> {
+    let mut direction = snake.direction;
+    if event::poll(Duration::from_millis(0))? {
+        if let Event::Key(key_event) = event::read()? {
+            direction = match key_event.code {
+                KeyCode::Up => Direction::Up,
+                KeyCode::Down => Direction::Down,
+                KeyCode::Left => Direction::Left,
+                KeyCode::Right => Direction::Right,
+                _ => direction,
+            };
+        }
+    }
+
+    match direction {
+        Direction::Up => {
+            snake.body.insert(
+                0,
+                Position {
+                    x: snake.body[0].x,
+                    y: snake.body[0].y.saturating_sub(1),
+                },
+            );
+        }
+        Direction::Down => {
+            snake.body.insert(
+                0,
+                Position {
+                    x: snake.body[0].x,
+                    y: snake.body[0].y.saturating_add(1),
+                },
+            );
+        }
+        Direction::Right => {
+            snake.body.insert(
+                0,
+                Position {
+                    x: snake.body[0].x.saturating_add(1),
+                    y: snake.body[0].y,
+                },
+            );
+        }
+        Direction::Left => {
+            snake.body.insert(
+                0,
+                Position {
+                    x: snake.body[0].x.saturating_sub(1),
+                    y: snake.body[0].y,
+                },
+            );
+        }
+    }
+    snake.direction = direction;
+    snake.body.pop();
+    stdout.flush()?;
+    thread::sleep(Duration::from_millis(50));
     Ok(())
 }
