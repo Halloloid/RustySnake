@@ -58,24 +58,39 @@ fn main() -> io::Result<()> {
         },
     };
 
-    let mut snake = Snake {
+    let snake = Snake {
         body: vec![Position { x: 2, y: 10 }, Position { x: 3, y: 10 }],
         direction: Direction::Right,
     };
 
-    let mut food_postion = Position { x: 0, y: 0 };
+    let mut game = Game {
+        snake: snake,
+        food: Position { x: 0, y: 0 },
+        running: true,
+    };
 
     terminal::enable_raw_mode()?;
-    for _ in 1..100 {
-        spawn_food(&mut stdout, &mut food_postion, &inside_boundary)?;
+    // for _ in 1..100 {
+    //     spawn_food(&mut stdout, &mut game.food, &inside_boundary)?;
+    //     create_boundary(&mut stdout, &boundary)?;
+    //     move_snake(&mut stdout, &mut game.snake)?;
+    //     draw_snake(&mut stdout, &game.snake.body)?;
+    // }
+
+    while game.running {
         create_boundary(&mut stdout, &boundary)?;
-        move_snake(&mut stdout, &mut snake)?;
-        draw_snake(&mut stdout, &snake.body)?;
+        move_snake(&mut stdout, &mut game.snake)?;
+        draw_snake(&mut stdout, &game.snake.body)?;
+        check_wall_collision( &mut game, &boundary)?;
     }
+    stdout
+        .queue(cursor::MoveTo(0, boundary.end.y))?
+        .queue(style::PrintStyledContent("You are Out".magenta()))?;
+    stdout.flush()?;
 
     terminal::disable_raw_mode()?;
 
-    stdout.execute(cursor::MoveTo(0, boundary.end.y))?;
+    stdout.execute(cursor::MoveTo(0, boundary.end.y+1))?;
 
     Ok(())
 }
@@ -183,10 +198,15 @@ fn move_snake(stdout: &mut Stdout, snake: &mut Snake) -> io::Result<()> {
     Ok(())
 }
 
-
-fn check_wall_collision(stdout: &mut Stdout) -> io::Result<()> {
-    
-    
-    
+fn check_wall_collision(
+    game: &mut Game,
+    boundary: &Boundary,
+) -> io::Result<()> {
+    let head = &game.snake.body[0];
+    if (head.x == boundary.start.x || head.x == boundary.end.x)
+        || (head.y == boundary.start.y || head.y == boundary.end.y)
+    {
+        game.running = false;
+    }
     Ok(())
 }
