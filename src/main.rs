@@ -2,13 +2,14 @@ use crossterm::{
     ExecutableCommand, QueueableCommand, cursor,
     event::{self, Event, KeyCode},
     style::{self, Stylize},
-    terminal,
+    terminal::{self,EnterAlternateScreen,LeaveAlternateScreen},
 };
 
 use rand::Rng;
 use std::io::{self, Stdout, Write, stdout};
 use std::{thread, time::Duration};
 
+#[derive(Clone, Copy,PartialEq)]
 struct Position {
     x: u16,
     y: u16,
@@ -31,6 +32,7 @@ struct Game {
     snake: Snake,
     food: Position,
     running: bool,
+    score : i32
 }
 
 struct Boundary {
@@ -49,8 +51,8 @@ fn main() -> io::Result<()> {
 
     let inside_boundary = Boundary {
         start: Position {
-            x: boundary.start.x + 1,
-            y: boundary.start.y + 1,
+            x: boundary.start.x + 2,
+            y: boundary.start.y + 2,
         },
         end: Position {
             x: boundary.end.x - 2,
@@ -59,7 +61,7 @@ fn main() -> io::Result<()> {
     };
 
     let snake = Snake {
-        body: vec![Position { x: 2, y: 10 }, Position { x: 3, y: 10 }],
+        body: vec![Position { x: 3, y: 10 }, Position { x: 2, y: 10 }],
         direction: Direction::Right,
     };
 
@@ -67,30 +69,37 @@ fn main() -> io::Result<()> {
         snake: snake,
         food: Position { x: 0, y: 0 },
         running: true,
+        score : 0
     };
 
     terminal::enable_raw_mode()?;
-    // for _ in 1..100 {
-    //     spawn_food(&mut stdout, &mut game.food, &inside_boundary)?;
-    //     create_boundary(&mut stdout, &boundary)?;
-    //     move_snake(&mut stdout, &mut game.snake)?;
-    //     draw_snake(&mut stdout, &game.snake.body)?;
-    // }
-
+    
+    stdout.execute(EnterAlternateScreen)?;
+    spawn_food(&mut stdout, &mut game.food, &inside_boundary)?;
     while game.running {
+        move_snake(&mut game.snake)?;
+        stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+        stdout.execute(cursor::MoveTo(0, 0))?;
         create_boundary(&mut stdout, &boundary)?;
-        move_snake(&mut stdout, &mut game.snake)?;
         draw_snake(&mut stdout, &game.snake.body)?;
+        draw_food(&mut stdout, &mut game)?;
         check_wall_collision( &mut game, &boundary)?;
+        check_food_collision(&mut stdout, &mut game, &inside_boundary)?;
+
+        stdout.flush()?;
+            thread::sleep(Duration::from_millis(80));
     }
+    
+    stdout.execute(LeaveAlternateScreen)?;
+    let msg = format!("You are Out\tScore is {}",game.score);
     stdout
         .queue(cursor::MoveTo(0, boundary.end.y))?
-        .queue(style::PrintStyledContent("You are Out".magenta()))?;
+        .queue(style::PrintStyledContent(msg.magenta()))?;
     stdout.flush()?;
 
     terminal::disable_raw_mode()?;
 
-    stdout.execute(cursor::MoveTo(0, boundary.end.y+1))?;
+    stdout.execute(cursor::MoveTo(0, boundary.end.y+2))?;
 
     Ok(())
 }
@@ -101,11 +110,10 @@ fn create_boundary(stdout: &mut Stdout, boundary: &Boundary) -> io::Result<()> {
             if (y == 0 || y == boundary.end.y - 1) || (x == 0 || x == boundary.end.x - 1) {
                 stdout
                     .queue(cursor::MoveTo(x, y))?
-                    .queue(style::PrintStyledContent("⏹".red()))?;
+                    .queue(style::PrintStyledContent("██".red()))?;
             }
         }
     }
-    stdout.flush()?;
     Ok(())
 }
 
@@ -121,25 +129,22 @@ fn spawn_food(
 
     stdout
         .queue(cursor::MoveTo(food_postion.x, food_postion.y))?
-        .queue(style::PrintStyledContent("⏹".magenta()))?;
+        .queue(style::PrintStyledContent("██".magenta()))?;
 
     stdout.flush()?;
     Ok(())
 }
 
 fn draw_snake(stdout: &mut Stdout, body: &Vec<Position>) -> io::Result<()> {
-    stdout.execute(terminal::Clear(terminal::ClearType::All))?;
     for pos in body {
         stdout
             .queue(cursor::MoveTo(pos.x, pos.y))?
-            .queue(style::PrintStyledContent("⏹".yellow()))?;
+            .queue(style::PrintStyledContent("██".yellow()))?;
     }
-
-    stdout.flush()?;
     Ok(())
 }
 
-fn move_snake(stdout: &mut Stdout, snake: &mut Snake) -> io::Result<()> {
+fn move_snake(snake: &mut Snake) -> io::Result<()> {
     let mut direction = snake.direction;
     if event::poll(Duration::from_millis(0))? {
         if let Event::Key(key_event) = event::read()? {
@@ -193,8 +198,7 @@ fn move_snake(stdout: &mut Stdout, snake: &mut Snake) -> io::Result<()> {
     }
     snake.direction = direction;
     snake.body.pop();
-    stdout.flush()?;
-    thread::sleep(Duration::from_millis(50));
+
     Ok(())
 }
 
@@ -203,10 +207,31 @@ fn check_wall_collision(
     boundary: &Boundary,
 ) -> io::Result<()> {
     let head = &game.snake.body[0];
-    if (head.x == boundary.start.x || head.x == boundary.end.x)
-        || (head.y == boundary.start.y || head.y == boundary.end.y)
+    if (head.x == boundary.start.x+1 || head.x == boundary.end.x-2)
+        || (head.y == boundary.start.y+1 || head.y == boundary.end.y-2)
     {
         game.running = false;
     }
+    Ok(())
+}
+
+fn check_food_collision(stdout: &mut Stdout,game: &mut Game,inside_boundary:&Boundary) -> io::Result<()> {
+    let head = game.snake.body[0].clone();
+
+    if head == game.food{
+        game.snake.body.insert(0, game.food);
+        game.score += 1 ;
+        spawn_food(stdout, &mut game.food, &inside_boundary)?;
+    }
+
+    Ok(())
+}
+
+fn draw_food(stdout: &mut Stdout,game: &mut Game) -> io::Result<()> {
+
+    stdout
+    .queue(cursor::MoveTo(game.food.x,game.food.y))?
+    .queue(style::PrintStyledContent("██".magenta()))?;
+
     Ok(())
 }
