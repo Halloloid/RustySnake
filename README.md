@@ -1,5 +1,16 @@
-## 💻 Run in Cloud (Gitpod)
+# RustySnake 🐍
 
-Click below to launch the game instantly in your browser:
+- Real-time keyboard input
+- Direction control with opposite-direction prevention
+- Collision detection (walls & self)
+- Random food spawning
+- Score tracking
+- Terminal-based rendering using Crossterm
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/Halloloid/RustySnake)
+  ## 🚀 Run Locally
+
+```bash
+git clone https://github.com/Halloloid/RustySnake.git
+cd ByteSnake
+cargo run
+```
