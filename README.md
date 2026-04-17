@@ -1,21 +1,35 @@
-# RustySnake 🐍
+# 🐍 RustySnake
 
-<img width="144" height="144" alt="Adobe Express - Adobe Express - desktop-20260417-12473903-trim_ufKZIcaF (online-video-cutter com)" src="https://github.com/user-attachments/assets/b4efab58-a954-4bdf-9e62-bb2db9ba45aa" />
+> A fast, minimal **terminal-based Snake game** built in Rust with real-time input and smooth gameplay.
 
-<img width="144" height="144" alt="Adobe Express - Adobe Express - desktop-20260417-12473903-trim_ufKZIcaF (online-video-cutter com) (1)" src="https://github.com/user-attachments/assets/068275c5-2c1d-47c2-819e-9bb660c92333" />
+<p align="center">
+  <img width="160" src="https://github.com/user-attachments/assets/b4efab58-a954-4bdf-9e62-bb2db9ba45aa" />
+</p>
 
+---
 
-- Real-time keyboard input
-- Direction control with opposite-direction prevention
-- Collision detection (walls & self)
-- Random food spawning
-- Score tracking
-- Terminal-based rendering using Crossterm
+##  Features
 
-  ## 🚀 Run Locally
+-  Real-time keyboard input (no lag)
+-  Smooth directional control with **reverse-blocking logic**
+-  Collision detection (walls + self)
+-  Randomized food spawning
+-  Live score tracking
+-  Clean terminal rendering using **Crossterm**
+
+---
+
+## 🛠️ Tech Stack
+
+- 🦀 Rust  
+- Crossterm (terminal handling)  
+- Rand (random food generation)  
+
+---
+
+##  Getting Started
 
 ```bash
 git clone https://github.com/Halloloid/RustySnake.git
-cd ByteSnake
+cd RustySnake
 cargo run
-```
