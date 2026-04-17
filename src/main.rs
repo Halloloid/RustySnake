@@ -61,7 +61,7 @@ fn main() -> io::Result<()> {
     };
 
     let snake = Snake {
-        body: vec![Position { x: 3, y: 10 }, Position { x: 2, y: 10 }],
+        body: vec![Position { x: 3, y: 10 }],
         direction: Direction::Right,
     };
 
@@ -84,6 +84,7 @@ fn main() -> io::Result<()> {
         draw_snake(&mut stdout, &game.snake.body)?;
         draw_food(&mut stdout, &mut game)?;
         check_wall_collision( &mut game, &boundary)?;
+        check_body_collision(&mut game)?;
         check_food_collision(&mut stdout, &mut game, &inside_boundary)?;
 
         stdout.flush()?;
@@ -136,10 +137,16 @@ fn spawn_food(
 }
 
 fn draw_snake(stdout: &mut Stdout, body: &Vec<Position>) -> io::Result<()> {
-    for pos in body {
-        stdout
-            .queue(cursor::MoveTo(pos.x, pos.y))?
-            .queue(style::PrintStyledContent("██".yellow()))?;
+
+    for (i,pos) in body.iter().enumerate() {
+        stdout.queue(cursor::MoveTo(pos.x,pos.y))?;
+        stdout.queue(style::PrintStyledContent(
+            if i==0 {
+                "██".green()
+            }else {
+                "██".yellow()
+            }
+        ))?;
     }
     Ok(())
 }
@@ -149,10 +156,10 @@ fn move_snake(snake: &mut Snake) -> io::Result<()> {
     if event::poll(Duration::from_millis(0))? {
         if let Event::Key(key_event) = event::read()? {
             direction = match key_event.code {
-                KeyCode::Up => Direction::Up,
-                KeyCode::Down => Direction::Down,
-                KeyCode::Left => Direction::Left,
-                KeyCode::Right => Direction::Right,
+                KeyCode::Up if !matches!(snake.direction,Direction::Down) => Direction::Up,
+                KeyCode::Down if !matches!(snake.direction,Direction::Up) => Direction::Down,
+                KeyCode::Left if !matches!(snake.direction,Direction::Right) => Direction::Left,
+                KeyCode::Right if !matches!(snake.direction,Direction::Left)=> Direction::Right,
                 _ => direction,
             };
         }
@@ -233,5 +240,16 @@ fn draw_food(stdout: &mut Stdout,game: &mut Game) -> io::Result<()> {
     .queue(cursor::MoveTo(game.food.x,game.food.y))?
     .queue(style::PrintStyledContent("██".magenta()))?;
 
+    Ok(())
+}
+
+fn check_body_collision(game: &mut Game) -> io::Result<()> {
+    let head = &game.snake.body[0];
+
+    for seg in &game.snake.body[1..] {
+        if seg == head {
+            game.running = false;
+        }
+    }
     Ok(())
 }
