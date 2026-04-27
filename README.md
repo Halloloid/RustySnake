@@ -3,7 +3,7 @@
 > A fast, minimal **terminal-based Snake game** built in Rust with real-time input and smooth gameplay.
 
 <p align="center">
-  <img width="160" src="https://github.com/user-attachments/assets/b4efab58-a954-4bdf-9e62-bb2db9ba45aa" />
+  <img width="350" src="https://github.com/user-attachments/assets/b4efab58-a954-4bdf-9e62-bb2db9ba45aa" />
 </p>
 
 ---
@@ -16,6 +16,12 @@
 -  Randomized food spawning
 -  Live score tracking
 -  Clean terminal rendering using **Crossterm**
+
+---
+## Controls
+
+- Arrow keys to move
+- Avoid walls and your own body
 
 ---
 
